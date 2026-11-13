@@ -39,8 +39,12 @@ input,select,textarea{width:100%;padding:10px;border:1px solid var(--ln);border-
 #note{font-size:.8rem;color:var(--wa);margin:8px 0}
 .tabs{display:flex;gap:6px;margin:10px 0}.tabs button{flex:1;padding:10px;border:1px solid var(--ln);border-radius:10px;background:var(--card);font-weight:600;cursor:pointer}.tabs button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
 .dl{font-size:.76rem;margin-top:2px;color:var(--mu)}.dl.up{color:var(--ac)}.dl.down{color:var(--rd)}
-.c0{fill:var(--ac);background:var(--ac)}.c1{fill:#3b82c4;background:#3b82c4}.c2{fill:#e0903a;background:#e0903a}.c3{fill:#8a96a0;background:#8a96a0}.cr{fill:var(--rd)}
+.c0{fill:var(--ac);background:var(--ac)}.c1{fill:#3b82c4;background:#3b82c4}.c2{fill:#e0903a;background:#e0903a}.c3{fill:#8a96a0;background:#8a96a0}.cr{fill:var(--rd);background:var(--rd)}
 .lg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:.78rem;color:var(--mu);margin-top:6px}.lg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px}
+.br{display:grid;grid-template-columns:104px 1fr 96px;gap:8px;align-items:center;margin:7px 0;font-size:.85rem}
+.bt{height:14px;background:var(--bg);border-radius:7px;overflow:hidden}.bf{height:100%;border-radius:7px;min-width:3px}.bv{text-align:right;font-weight:600;font-size:.82rem}
+.sep{border-top:1px solid var(--ln);margin:10px 0 4px}.ins{font-size:.84rem;color:var(--mu);margin-top:10px;line-height:1.45}
+.kb{padding:8px 0;border-bottom:1px solid var(--ln)}.kb:last-child{border:0}.kh{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
 </style><script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script></head><body><main>
 <h1>Keuangan Jastip</h1><div class="tabs"><button id="tD" class="on">Dashboard</button><button id="tC">Catatan</button></div>
 <div id="bk" class="card warn" style="display:none;margin:8px 0;font-weight:600"></div>
@@ -49,8 +53,10 @@ input,select,textarea{width:100%;padding:10px;border:1px solid var(--ln);border-
 <div class="top"><h2 style="margin:0">Ringkasan <select id="dmode" style="width:auto;padding:4px 8px;margin-left:6px"><option value="w">Mingguan</option><option value="m">Bulanan</option></select></h2></div>
 <h2 id="dh1"></h2><div class="grid" id="dcards"></div>
 <h2 id="dt1"></h2><div class="card" id="ch1"></div>
-<h2>Dari mana untung ibu berasal</h2><div class="card"><div id="ch2"></div><div class="lg" id="lg"></div></div>
-<h2>Per karyawan <select id="kp" style="width:auto;padding:4px 8px;margin-left:6px"></select></h2><div class="card" id="dkar" style="overflow-x:auto"></div>
+<h2 id="rh">Rekap</h2><div class="card" id="rek" style="overflow-x:auto"></div>
+<h2>Detail periode <select id="kp" style="width:auto;padding:4px 8px;margin-left:6px"></select></h2>
+<div class="k" style="margin:-4px 0 6px">Dari mana untung ibu berasal dan ke mana perginya</div><div class="card" id="bd"></div>
+<h2>Perbandingan karyawan (periode yang sama)</h2><div class="card" id="dkar"></div>
 <div class="k" style="margin-top:12px">Angka hanya dari pesanan yang sudah transfer dan biaya operasional yang dicatat. Periode berjalan belum selesai, jadi perbandingannya masih bisa berubah.</div>
 </div>
 <div id="pgC" style="display:none">
@@ -58,8 +64,6 @@ input,select,textarea{width:100%;padding:10px;border:1px solid var(--ln);border-
 <div class="acts" style="margin-top:8px"><button class="btn g" id="biaya">+ Biaya operasional</button><button class="btn g" id="xls">Ekspor Excel</button><button class="btn g" id="cad">Cadangkan data</button><button class="btn g" id="pul">Pulihkan data</button><input type="file" id="rf" accept=".json,application/json" hidden></div>
 <h2>Uang ibu yang masih di luar</h2><div id="out"></div>
 <h2>Ringkasan (pesanan yang sudah transfer)</h2><div class="grid" id="sum"></div>
-<h2>Rekap <select id="mode" style="width:auto;padding:4px 8px;margin-left:6px"><option value="w">Mingguan</option><option value="m">Bulanan</option></select></h2><div class="card" id="rek" style="overflow-x:auto"></div>
-<h2>Per karyawan</h2><div class="card" id="kar"></div>
 <h2>Biaya operasional bulan ini (bensin, plastik, dll)</h2><div id="bl"></div>
 <h2>Pesanan</h2><div class="two"><input id="q" placeholder="Cari nama kustomer"><select id="st"><option value="">Semua status</option><option value="u">Menunggu transfer</option><option value="p">Lunas</option></select></div><div id="list" style="margin-top:8px"></div>
 </div>
@@ -98,7 +102,7 @@ function agg(kf,full){const m={};const g=k=>m[k]||(m[k]={all:0,n:0,m:0,u:0,o:0,w
  exps.forEach(e=>{if(!e.tgl)return;g(kf(e.tgl)).b+=+e.jumlah||0});
  return Object.keys(m).filter(k=>full||m[k].all>0).sort().reverse().map(k=>({k,...m[k],bersih:m[k].u+m[k].o-m[k].w-m[k].b}))}
 const mlab=k=>{const [y,m]=k.split("-");return["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"][m-1]+" "+y};
-function rekap(){const w=$("#mode").value=="w";const a=agg(w?wkey:t=>t.slice(0,7)).slice(0,w?10:12);const x=$("#rek");
+function rekap(){const w=$("#dmode").value=="w";const a=agg(w?wkey:t=>t.slice(0,7)).slice(0,w?10:12);const x=$("#rek");
  if(!a.length){x.textContent="Belum ada data.";return}
  const t=el("table");t.innerHTML="<tr><th>"+(w?"Minggu":"Bulan")+"</th><th>Pesanan</th><th>Untung</th><th>Ongkir</th><th>Upah</th><th>Biaya</th><th>Bersih</th></tr>";
  a.forEach(r=>{const tr=el("tr");[w?wlab(r.k):mlab(r.k),r.n,rp(r.u),rp(r.o),rp(r.w),rp(r.b),rp(r.bersih)].forEach((v,i)=>{const d=el("td",null,v);if(i==6)d.style.fontWeight="700";tr.append(d)});t.append(tr)});x.replaceChildren(t)}
@@ -109,40 +113,49 @@ function periods(w,N){const o=[],d=new Date();d.setHours(0,0,0,0);
  else{d.setDate(1);for(let i=0;i<N;i++){o.unshift(iso(d).slice(0,7));d.setMonth(d.getMonth()-1)}}
  return o}
 const plab=(w,k)=>w?dt(k).getDate()+"/"+(dt(k).getMonth()+1):mlab(k).split(" ")[0];
-function bars(w,D,series,H){
- const W=400,T=16,B=24,h=H-T-B,N=D.length,sw=(W-16)/N,bw=sw*.62;let pos=0,neg=0;
- D.forEach(d=>{let a=0,b=0;series.forEach(s=>{const v=s.f(d);v>=0?a+=v:b-=v});pos=Math.max(pos,a);neg=Math.max(neg,b)});
- const R=(pos+neg)||1,y0=T+pos/R*h;let g='<line x1="8" x2="392" y1="'+y0+'" y2="'+y0+'" stroke="var(--ln)"/>';
- D.forEach((d,i)=>{const x=8+i*sw+(sw-bw)/2;let up=y0,dn=y0,gr="",tip=w?wlab(d.k):mlab(d.k);
-  series.forEach(s=>{const v=s.f(d);if(!v)return;const ht=Math.max(1,Math.abs(v)/R*h),cl=series.length==1&&v<0?"cr":s.c;tip+="\n"+s.n+": "+rp(Math.abs(v));
-   if(v>=0){up-=ht;gr+='<rect x="'+x+'" y="'+up+'" width="'+bw+'" height="'+ht+'" rx="2" class="'+cl+'"/>'}
-   else{gr+='<rect x="'+x+'" y="'+dn+'" width="'+bw+'" height="'+ht+'" rx="2" class="'+cl+'"/>';dn+=ht}});
-  if(series.length==1){const v=series[0].f(d);if(v)gr+='<text x="'+(x+bw/2)+'" y="'+(v>=0?up-3:dn+11)+'" text-anchor="middle" font-size="10" fill="var(--tx)">'+cmp(v)+'</text>'}
-  g+='<g><title>'+tip+'</title>'+gr+'<text x="'+(x+bw/2)+'" y="'+(H-8)+'" text-anchor="middle" font-size="10.5" fill="var(--mu)">'+plab(w,d.k)+'</text></g>'});
+function bars(w,D){
+ const W=400,H=200,L=38,T=20,B=24,h=H-T-B,N=D.length,sw=(W-L-6)/N,bw=sw*.6;let pos=0,neg=0;
+ D.forEach(d=>{pos=Math.max(pos,d.bersih);neg=Math.max(neg,-d.bersih)});
+ const R=(pos+neg)||1,y0=T+pos/R*h,Y=v=>y0-v/R*h;let g="";
+ const tk=(pos>0?[pos,pos/2]:[]).concat([0],neg>0?[-neg]:[]);
+ tk.forEach(v=>{g+='<line x1="'+L+'" x2="'+(W-6)+'" y1="'+Y(v)+'" y2="'+Y(v)+'" stroke="var(--ln)"'+(v?' stroke-dasharray="3 3"':'')+'/><text x="'+(L-5)+'" y="'+(Y(v)+3.5)+'" text-anchor="end" font-size="9.5" fill="var(--mu)">'+(v?cmp(v):"0")+'</text>'});
+ D.forEach((d,i)=>{const x=L+i*sw+(sw-bw)/2,v=d.bersih,last=i==N-1,ht=Math.max(2,Math.abs(v)/R*h);let gr="";
+  if(v){const y=v>0?y0-ht:y0;gr+='<rect x="'+x+'" y="'+y+'" width="'+bw+'" height="'+ht+'" rx="4" class="'+(v<0?"cr":"c0")+'"'+(last?' opacity=".55"':'')+'/>';
+   gr+='<text x="'+(x+bw/2)+'" y="'+(v>0?y-4:y0-4)+'" text-anchor="middle" font-size="10.5" font-weight="700" fill="'+(v<0?"var(--rd)":"var(--tx)")+'">'+cmp(v)+'</text>'}
+  g+='<g><title>'+(w?wlab(d.k):mlab(d.k))+(last?" (berjalan)":"")+"\nBersih: "+rp(v)+'</title>'+gr+'<text x="'+(x+bw/2)+'" y="'+(H-8)+'" text-anchor="middle" font-size="10.5" fill="var(--mu)"'+(last?' font-weight="700"':'')+'>'+plab(w,d.k)+'</text></g>'});
+ const dn=D.slice(0,-1).filter(d=>d.all>0);
+ if(dn.length>=2){const a=dn.reduce((s,d)=>s+d.bersih,0)/dn.length;g+='<line x1="'+L+'" x2="'+(W-6)+'" y1="'+Y(a)+'" y2="'+Y(a)+'" stroke="var(--wa)" stroke-width="1.5" stroke-dasharray="5 3"/><text x="'+(L+3)+'" y="'+(Y(a)-4)+'" font-size="9.5" fill="var(--wa)">rata-rata '+cmp(a)+'</text>'}
  return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img">'+g+'</svg>'}
+function brow(label,v,mx,cls,sign){const r=el("div","br"),t=el("div","bt"),f=el("div","bf "+cls);f.style.width=Math.max(1,Math.min(100,Math.abs(v)/mx*100))+"%";t.append(f);
+ r.append(el("div",null,label),t,el("div","bv",(sign&&v>0?"+":"")+(v<0?"-":"")+rp(Math.abs(v))));return r}
 function dash(){
+ rekap();
  const w=$("#dmode").value=="w",N=w?8:6,ps=periods(w,N),A={};agg(w?wkey:mk,true).forEach(x=>A[x.k]=x);
- const Z={n:0,m:0,u:0,o:0,w:0,b:0,bersih:0},D=ps.map(k=>({...Z,...(A[k]||{}),k}));
+ const Z={all:0,n:0,m:0,u:0,o:0,w:0,b:0,bersih:0},D=ps.map(k=>({...Z,...(A[k]||{}),k}));
  const has=Object.keys(A).length>0,cur=D[N-1],prev=D[N-2],pl=w?"minggu lalu":"bulan lalu";
+ $("#rh").textContent="Rekap "+(w?"mingguan":"bulanan");
  $("#dh1").textContent=(w?"Minggu ini":"Bulan ini")+" (berjalan) · "+(w?wlab(cur.k):mlab(cur.k));
  const dl=(a,b)=>{const e=el("div","dl");
   if(a==b)e.textContent="sama seperti "+pl;else if(!b)e.textContent="tidak ada pembanding di "+pl;
   else{const p=Math.round(Math.abs(a-b)/Math.abs(b)*100);e.classList.add(a>b?"up":"down");e.textContent=(a>b?"▲ ":"▼ ")+p+"% dari "+pl}return e};
  $("#dcards").replaceChildren(...[["Bersih untuk ibu",rp(cur.bersih),cur.bersih,prev.bersih,"big"],["Untung barang",rp(cur.u),cur.u,prev.u],["Ongkir",rp(cur.o),cur.o,prev.o],["Pesanan lunas",String(cur.n),cur.n,prev.n]].map(x=>{const c=stat(x[0],x[1],x[4]);c.append(dl(x[2],x[3]));return c}));
  $("#dt1").textContent="Bersih untuk ibu per "+(w?"minggu (8 terakhir)":"bulan (6 terakhir)");
- const S2=[{c:"c0",n:"Untung barang",f:d=>d.u},{c:"c1",n:"Ongkir",f:d=>d.o},{c:"c2",n:"Upah karyawan",f:d=>-d.w},{c:"c3",n:"Biaya operasional",f:d=>-d.b}];
- if(!has){$("#ch1").textContent="Belum ada data. Mulai catat pesanan di tab Catatan.";$("#ch2").textContent="Belum ada data.";$("#lg").replaceChildren()}
- else{$("#ch1").innerHTML=bars(w,D,[{c:"c0",n:"Bersih",f:d=>d.bersih}],190);$("#ch2").innerHTML=bars(w,D,S2,220);
-  $("#lg").replaceChildren(...S2.map(s=>{const e=el("span"),i=el("i",s.c);e.append(i,s.n+(s.f({u:1,o:1,w:1,b:1})<0?" (pengurang)":""));return e}))}
  const sel=$("#kp"),old=sel.value;
- sel.replaceChildren(...D.slice().reverse().map(d=>{const o=el("option",null,w?wlab(d.k):mlab(d.k));o.value=d.k;return o}));
- if([...sel.options].some(o=>o.value==old))sel.value=old;
+ sel.replaceChildren(...D.slice().reverse().map(d=>{const o=el("option",null,(w?wlab(d.k):mlab(d.k))+(d.k==cur.k?" (berjalan)":""));o.value=d.k;return o}));
+ const wd=D.filter(d=>d.all||d.b);
+ sel.value=[...sel.options].some(o=>o.value==old)?old:(wd.length?wd[wd.length-1].k:cur.k);
+ if(!has){$("#ch1").textContent="Belum ada data. Mulai catat pesanan di tab Catatan.";$("#bd").textContent="Belum ada data.";$("#dkar").textContent="Belum ada data.";return}
+ $("#ch1").innerHTML=bars(w,D);
+ const d=D.find(x=>x.k==sel.value),gross=d.u+d.o,mx=Math.max(d.u,d.o,d.w,d.b,Math.abs(d.bersih),1),bd=$("#bd");
+ bd.replaceChildren(brow("Untung barang",d.u,mx,"c0",1),brow("Ongkir",d.o,mx,"c1",1),brow("Upah karyawan",-d.w,mx,"c2"),brow("Biaya operasional",-d.b,mx,"c3"),el("div","sep"),brow("Bersih untuk ibu",d.bersih,mx,d.bersih<0?"cr":"c0"));
+ if(gross>0){const t=el("div","ins");t.textContent="Dari pemasukan kotor "+rp(gross)+" (untung barang + ongkir), "+Math.round(d.bersih/gross*100)+"% menjadi bersih. Ongkir menyumbang "+Math.round(d.o/gross*100)+"% dari pemasukan kotor."+(d.bersih<0?" Periode ini rugi karena upah dan biaya melebihi pemasukan.":"");bd.append(t)}
  const key=sel.value,km={};
  rows.forEach(r=>{const c=calc(r);if(!c.paid||!r.tgl||(w?wkey(r.tgl):mk(r.tgl))!=key)return;const k=(r.kar||"(tanpa nama)").trim(),o=km[k]||(km[k]={n:0,o:0,w:0});o.n++;o.o+=c.ongkir;o.w+=c.upah});
  const ks=Object.keys(km).sort(),dk=$("#dkar");
- if(!ks.length)dk.textContent="Belum ada pesanan lunas di periode ini.";
- else{const t=el("table");t.innerHTML="<tr><th>Karyawan</th><th>Pesanan</th><th>Ongkir</th><th>Upah</th><th>Upah/pesanan</th></tr>";
-  ks.forEach(k=>{const o=km[k],tr=el("tr");[k,o.n,rp(o.o),rp(o.w),rp(o.w/o.n)].forEach(v=>tr.append(el("td",null,v)));t.append(tr)});dk.replaceChildren(t)}}
+ if(!ks.length){dk.textContent="Belum ada pesanan lunas di periode ini.";return}
+ const kx=Math.max(...ks.map(k=>Math.max(km[k].o,km[k].w)),1);
+ dk.replaceChildren(...ks.map(k=>{const o=km[k],b=el("div","kb"),h=el("div","kh"),u=el("span","k",o.n+" pesanan · upah rata-rata "+rp(o.w/o.n)+"/pesanan");h.append(el("b",null,k),u);b.append(h,brow("Ongkir",o.o,kx,"c1"),brow("Upah",o.w,kx,"c2"));return b}));
+}
 function tab(t){$("#pgD").style.display=t=="D"?"":"none";$("#pgC").style.display=t=="C"?"":"none";$("#tD").className=t=="D"?"on":"";$("#tC").className=t=="C"?"on":""}
 function render(){
  const bln=$("#bulan").value;
@@ -157,14 +170,9 @@ function render(){
  const tot=pd.reduce((a,r)=>{const c=calc(r);a.m+=+r.transfer;a.u+=c.untung;a.o+=c.ongkir;a.w+=c.upah;return a},{m:0,u:0,o:0,w:0});
  const fe=exps.filter(e=>!bln||(e.tgl||"").startsWith(bln)).sort((a,b)=>(b.tgl||"").localeCompare(a.tgl||""));const tb=fe.reduce((s,e)=>s+(+e.jumlah||0),0);
  $("#sum").replaceChildren(stat("Uang masuk",rp(tot.m)),stat("Untung barang",rp(tot.u)),stat("Ongkir",rp(tot.o)),stat("Upah karyawan",rp(tot.w)),stat("Biaya operasional",rp(tb)),stat("Bersih untuk ibu",rp(tot.u+tot.o-tot.w-tb),"big"));
- rekap();dash();
+ dash();
  const B=$("#bl");B.replaceChildren();if(!fe.length)B.append(el("div","k","Belum ada biaya tercatat."));
  fe.forEach(e=>{const d=el("div","card row"),h=el("div","h");h.append(el("div","n",e.ket||"-"),el("b",null,rp(+e.jumlah||0)));d.append(h,el("div","s",e.tgl||""));d.onclick=()=>openB(e);B.append(d)});
- // per karyawan
- const km={};pd.forEach(r=>{const k=(r.kar||"(tanpa nama)").trim();const c=calc(r);const o=km[k]||(km[k]={n:0,o:0,w:0});o.n++;o.o+=c.ongkir;o.w+=c.upah});
- const ks=Object.keys(km).sort();const kt=$("#kar");
- if(!ks.length)kt.textContent="Belum ada data.";else{const t=el("table");t.innerHTML="<tr><th>Karyawan</th><th>Pesanan</th><th>Ongkir</th><th>Upah</th></tr>";
- ks.forEach(k=>{const tr=el("tr");[k,km[k].n,rp(km[k].o),rp(km[k].w)].forEach(x=>tr.append(el("td",null,x)));t.append(tr)});kt.replaceChildren(t)}
  // datalist
  $("#kl").replaceChildren(...[...new Set(rows.map(r=>(r.kar||"").trim()).filter(Boolean))].map(k=>{const o=el("option");o.value=k;return o}));
  // list
@@ -220,7 +228,7 @@ async function exp(){const n=$("#note");
  add("Biaya",exps.filter(e=>!bln||(e.tgl||"").startsWith(bln)).map(e=>({Tanggal:e.tgl,Keterangan:e.ket,Jumlah:+e.jumlah||0})));
  try{XLSX.writeFile(wb,"keuangan-jastip"+(bln?"-"+bln:"")+".xlsx");n.textContent=""}catch(e){n.textContent="Ekspor gagal, coba lagi."}}
 $("#biaya").onclick=()=>openB(null);$("#bsimpan").onclick=saveB;$("#bhapus").onclick=delB;$("#bbatal").onclick=()=>$("#dlg2").close();$("#xls").onclick=exp;
-$("#mode").onchange=render;$("#q").oninput=render;$("#st").onchange=render;
+$("#q").oninput=render;$("#st").onchange=render;
 $("#tambah").onclick=()=>open(null);$("#simpan").onclick=save;$("#hapus").onclick=del;$("#batal").onclick=()=>$("#dlg").close();
 ["#f_bel","#f_bi","#f_nota","#f_tr","#f_up"].forEach(s=>$(s).addEventListener("input",pv));
 $("#bulan").value=new Date().toISOString().slice(0,7);$("#bulan").onchange=render;
