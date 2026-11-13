@@ -37,22 +37,38 @@ input,select,textarea{width:100%;padding:10px;border:1px solid var(--ln);border-
 .pv{margin-top:12px;font-size:.88rem;background:var(--ac2);border-radius:10px;padding:10px}
 .acts{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}.acts .btn{flex:1}
 #note{font-size:.8rem;color:var(--wa);margin:8px 0}
+.tabs{display:flex;gap:6px;margin:10px 0}.tabs button{flex:1;padding:10px;border:1px solid var(--ln);border-radius:10px;background:var(--card);font-weight:600;cursor:pointer}.tabs button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.dl{font-size:.76rem;margin-top:2px;color:var(--mu)}.dl.up{color:var(--ac)}.dl.down{color:var(--rd)}
+.c0{fill:var(--ac);background:var(--ac)}.c1{fill:#3b82c4;background:#3b82c4}.c2{fill:#e0903a;background:#e0903a}.c3{fill:#8a96a0;background:#8a96a0}.cr{fill:var(--rd)}
+.lg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:.78rem;color:var(--mu);margin-top:6px}.lg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px}
 </style><script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script></head><body><main>
-<div class="top"><h1>Keuangan Jastip</h1><div><input id="bulan" type="month" style="width:auto"> <button class="btn" id="tambah">+ Pesanan</button></div></div>
-<div class="acts" style="margin-top:8px"><button class="btn g" id="biaya">+ Biaya operasional</button><button class="btn g" id="xls">Ekspor Excel</button><button class="btn g" id="cad">Cadangkan data</button><button class="btn g" id="pul">Pulihkan data</button><input type="file" id="rf" accept=".json,application/json" hidden></div>
+<h1>Keuangan Jastip</h1><div class="tabs"><button id="tD" class="on">Dashboard</button><button id="tC">Catatan</button></div>
 <div id="bk" class="card warn" style="display:none;margin:8px 0;font-weight:600"></div>
 <div id="note"></div>
+<div id="pgD">
+<div class="top"><h2 style="margin:0">Ringkasan <select id="dmode" style="width:auto;padding:4px 8px;margin-left:6px"><option value="w">Mingguan</option><option value="m">Bulanan</option></select></h2></div>
+<h2 id="dh1"></h2><div class="grid" id="dcards"></div>
+<h2 id="dt1"></h2><div class="card" id="ch1"></div>
+<h2>Dari mana untung ibu berasal</h2><div class="card"><div id="ch2"></div><div class="lg" id="lg"></div></div>
+<h2>Per karyawan <select id="kp" style="width:auto;padding:4px 8px;margin-left:6px"></select></h2><div class="card" id="dkar" style="overflow-x:auto"></div>
+<div class="k" style="margin-top:12px">Angka hanya dari pesanan yang sudah transfer dan biaya operasional yang dicatat. Periode berjalan belum selesai, jadi perbandingannya masih bisa berubah.</div>
+</div>
+<div id="pgC" style="display:none">
+<div class="top"><div class="k">Catatan pesanan</div><div><input id="bulan" type="month" style="width:auto"> <button class="btn" id="tambah">+ Pesanan</button></div></div>
+<div class="acts" style="margin-top:8px"><button class="btn g" id="biaya">+ Biaya operasional</button><button class="btn g" id="xls">Ekspor Excel</button><button class="btn g" id="cad">Cadangkan data</button><button class="btn g" id="pul">Pulihkan data</button><input type="file" id="rf" accept=".json,application/json" hidden></div>
 <h2>Uang ibu yang masih di luar</h2><div id="out"></div>
 <h2>Ringkasan (pesanan yang sudah transfer)</h2><div class="grid" id="sum"></div>
 <h2>Rekap <select id="mode" style="width:auto;padding:4px 8px;margin-left:6px"><option value="w">Mingguan</option><option value="m">Bulanan</option></select></h2><div class="card" id="rek" style="overflow-x:auto"></div>
 <h2>Per karyawan</h2><div class="card" id="kar"></div>
 <h2>Biaya operasional bulan ini (bensin, plastik, dll)</h2><div id="bl"></div>
 <h2>Pesanan</h2><div class="two"><input id="q" placeholder="Cari nama kustomer"><select id="st"><option value="">Semua status</option><option value="u">Menunggu transfer</option><option value="p">Lunas</option></select></div><div id="list" style="margin-top:8px"></div>
+</div>
 <dialog id="dlg">
 <div style="font-weight:700" id="jd">Pesanan baru</div>
 <label>Nama kustomer</label><input id="f_nama">
 <div class="two"><div><label>Tanggal</label><input id="f_tgl" type="date"></div><div><label>Karyawan</label><input id="f_kar" list="kl" placeholder="mis. Ibu / A"><datalist id="kl"></datalist></div></div>
-<div class="two"><div><label>Belanja di toko (Rp)</label><input id="f_bel" type="number" inputmode="numeric"></div><div><label>Total nota ke kustomer (Rp)</label><input id="f_nota" type="number" inputmode="numeric"></div></div>
+<div class="two"><div><label>Belanja karyawan (Rp)</label><input id="f_bel" type="number" inputmode="numeric"></div><div><label>Belanja ibu (Rp)</label><input id="f_bi" type="number" inputmode="numeric"></div></div>
+<label>Total nota ke kustomer (Rp)</label><input id="f_nota" type="number" inputmode="numeric">
 <div class="two"><div><label>Transfer masuk (kosongkan jika belum)</label><input id="f_tr" type="number" inputmode="numeric"></div><div><label>Upah karyawan (Rp)</label><input id="f_up" type="number" inputmode="numeric"></div></div>
 <label>Catatan</label><input id="f_cat">
 <div class="pv" id="pv"></div>
@@ -69,36 +85,79 @@ const $=s=>document.querySelector(s);
 const rp=n=>(n<0?"-":"")+"Rp"+Math.abs(Math.round(n)).toLocaleString("id-ID");
 const nv=s=>{const v=$(s).value;return v===""?null:Number(v)};
 let rows=[],exps=[],db=null,bid=null,barm=false,editId=null,loaded=false,delArm=false;
-const calc=r=>{const b=+r.belanja||0,n=+r.nota||0,paid=r.transfer!=null&&r.transfer!=="";return{paid,untung:n-b,ongkir:paid?r.transfer-n:0,upah:+r.upah||0}};
+const bel=r=>(+r.belanja||0)+(+r.belanjaIbu||0);
+const calc=r=>{const b=bel(r),n=+r.nota||0,paid=r.transfer!=null&&r.transfer!=="";return{paid,untung:n-b,ongkir:paid?r.transfer-n:0,upah:+r.upah||0}};
 const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e};
 function stat(k,v,c){const d=el("div","card "+(c||""));d.append(el("div","k",k),el("div","v",v));return d}
 const dt=t=>new Date((t||"1970-01-01")+"T00:00:00");
 const iso=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
 const wkey=t=>{const d=dt(t);d.setDate(d.getDate()-((d.getDay()+6)%7));return iso(d)};
 const wlab=k=>{const a=dt(k),b=new Date(a);b.setDate(b.getDate()+6);const f=d=>d.getDate()+"/"+(d.getMonth()+1);return f(a)+" - "+f(b)+" "+b.getFullYear()};
-function agg(kf){const m={};const g=k=>m[k]||(m[k]={n:0,m:0,u:0,o:0,w:0,b:0});
- rows.forEach(r=>{const c=calc(r);if(!c.paid||!r.tgl)return;const a=g(kf(r.tgl));a.n++;a.m+=+r.transfer;a.u+=c.untung;a.o+=c.ongkir;a.w+=c.upah});
+function agg(kf,full){const m={};const g=k=>m[k]||(m[k]={all:0,n:0,m:0,u:0,o:0,w:0,b:0});
+ rows.forEach(r=>{const c=calc(r);if(!r.tgl)return;const a=g(kf(r.tgl));a.all++;if(!c.paid)return;a.n++;a.m+=+r.transfer;a.u+=c.untung;a.o+=c.ongkir;a.w+=c.upah});
  exps.forEach(e=>{if(!e.tgl)return;g(kf(e.tgl)).b+=+e.jumlah||0});
- return Object.keys(m).sort().reverse().map(k=>({k,...m[k],bersih:m[k].u+m[k].o-m[k].w-m[k].b}))}
+ return Object.keys(m).filter(k=>full||m[k].all>0).sort().reverse().map(k=>({k,...m[k],bersih:m[k].u+m[k].o-m[k].w-m[k].b}))}
 const mlab=k=>{const [y,m]=k.split("-");return["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"][m-1]+" "+y};
 function rekap(){const w=$("#mode").value=="w";const a=agg(w?wkey:t=>t.slice(0,7)).slice(0,w?10:12);const x=$("#rek");
  if(!a.length){x.textContent="Belum ada data.";return}
  const t=el("table");t.innerHTML="<tr><th>"+(w?"Minggu":"Bulan")+"</th><th>Pesanan</th><th>Untung</th><th>Ongkir</th><th>Upah</th><th>Biaya</th><th>Bersih</th></tr>";
  a.forEach(r=>{const tr=el("tr");[w?wlab(r.k):mlab(r.k),r.n,rp(r.u),rp(r.o),rp(r.w),rp(r.b),rp(r.bersih)].forEach((v,i)=>{const d=el("td",null,v);if(i==6)d.style.fontWeight="700";tr.append(d)});t.append(tr)});x.replaceChildren(t)}
+const mk=t=>t.slice(0,7);
+const cmp=n=>{const a=Math.abs(n),g=n<0?"-":"";return g+(a>=1e6?(a/1e6).toFixed(1).replace(".",",")+" jt":a>=1e3?Math.round(a/1e3)+" rb":Math.round(a))};
+function periods(w,N){const o=[],d=new Date();d.setHours(0,0,0,0);
+ if(w){d.setDate(d.getDate()-((d.getDay()+6)%7));for(let i=0;i<N;i++){o.unshift(iso(d));d.setDate(d.getDate()-7)}}
+ else{d.setDate(1);for(let i=0;i<N;i++){o.unshift(iso(d).slice(0,7));d.setMonth(d.getMonth()-1)}}
+ return o}
+const plab=(w,k)=>w?dt(k).getDate()+"/"+(dt(k).getMonth()+1):mlab(k).split(" ")[0];
+function bars(w,D,series,H){
+ const W=400,T=16,B=24,h=H-T-B,N=D.length,sw=(W-16)/N,bw=sw*.62;let pos=0,neg=0;
+ D.forEach(d=>{let a=0,b=0;series.forEach(s=>{const v=s.f(d);v>=0?a+=v:b-=v});pos=Math.max(pos,a);neg=Math.max(neg,b)});
+ const R=(pos+neg)||1,y0=T+pos/R*h;let g='<line x1="8" x2="392" y1="'+y0+'" y2="'+y0+'" stroke="var(--ln)"/>';
+ D.forEach((d,i)=>{const x=8+i*sw+(sw-bw)/2;let up=y0,dn=y0,gr="",tip=w?wlab(d.k):mlab(d.k);
+  series.forEach(s=>{const v=s.f(d);if(!v)return;const ht=Math.max(1,Math.abs(v)/R*h),cl=series.length==1&&v<0?"cr":s.c;tip+="\n"+s.n+": "+rp(Math.abs(v));
+   if(v>=0){up-=ht;gr+='<rect x="'+x+'" y="'+up+'" width="'+bw+'" height="'+ht+'" rx="2" class="'+cl+'"/>'}
+   else{gr+='<rect x="'+x+'" y="'+dn+'" width="'+bw+'" height="'+ht+'" rx="2" class="'+cl+'"/>';dn+=ht}});
+  if(series.length==1){const v=series[0].f(d);if(v)gr+='<text x="'+(x+bw/2)+'" y="'+(v>=0?up-3:dn+11)+'" text-anchor="middle" font-size="10" fill="var(--tx)">'+cmp(v)+'</text>'}
+  g+='<g><title>'+tip+'</title>'+gr+'<text x="'+(x+bw/2)+'" y="'+(H-8)+'" text-anchor="middle" font-size="10.5" fill="var(--mu)">'+plab(w,d.k)+'</text></g>'});
+ return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img">'+g+'</svg>'}
+function dash(){
+ const w=$("#dmode").value=="w",N=w?8:6,ps=periods(w,N),A={};agg(w?wkey:mk,true).forEach(x=>A[x.k]=x);
+ const Z={n:0,m:0,u:0,o:0,w:0,b:0,bersih:0},D=ps.map(k=>({...Z,...(A[k]||{}),k}));
+ const has=Object.keys(A).length>0,cur=D[N-1],prev=D[N-2],pl=w?"minggu lalu":"bulan lalu";
+ $("#dh1").textContent=(w?"Minggu ini":"Bulan ini")+" (berjalan) · "+(w?wlab(cur.k):mlab(cur.k));
+ const dl=(a,b)=>{const e=el("div","dl");
+  if(a==b)e.textContent="sama seperti "+pl;else if(!b)e.textContent="tidak ada pembanding di "+pl;
+  else{const p=Math.round(Math.abs(a-b)/Math.abs(b)*100);e.classList.add(a>b?"up":"down");e.textContent=(a>b?"▲ ":"▼ ")+p+"% dari "+pl}return e};
+ $("#dcards").replaceChildren(...[["Bersih untuk ibu",rp(cur.bersih),cur.bersih,prev.bersih,"big"],["Untung barang",rp(cur.u),cur.u,prev.u],["Ongkir",rp(cur.o),cur.o,prev.o],["Pesanan lunas",String(cur.n),cur.n,prev.n]].map(x=>{const c=stat(x[0],x[1],x[4]);c.append(dl(x[2],x[3]));return c}));
+ $("#dt1").textContent="Bersih untuk ibu per "+(w?"minggu (8 terakhir)":"bulan (6 terakhir)");
+ const S2=[{c:"c0",n:"Untung barang",f:d=>d.u},{c:"c1",n:"Ongkir",f:d=>d.o},{c:"c2",n:"Upah karyawan",f:d=>-d.w},{c:"c3",n:"Biaya operasional",f:d=>-d.b}];
+ if(!has){$("#ch1").textContent="Belum ada data. Mulai catat pesanan di tab Catatan.";$("#ch2").textContent="Belum ada data.";$("#lg").replaceChildren()}
+ else{$("#ch1").innerHTML=bars(w,D,[{c:"c0",n:"Bersih",f:d=>d.bersih}],190);$("#ch2").innerHTML=bars(w,D,S2,220);
+  $("#lg").replaceChildren(...S2.map(s=>{const e=el("span"),i=el("i",s.c);e.append(i,s.n+(s.f({u:1,o:1,w:1,b:1})<0?" (pengurang)":""));return e}))}
+ const sel=$("#kp"),old=sel.value;
+ sel.replaceChildren(...D.slice().reverse().map(d=>{const o=el("option",null,w?wlab(d.k):mlab(d.k));o.value=d.k;return o}));
+ if([...sel.options].some(o=>o.value==old))sel.value=old;
+ const key=sel.value,km={};
+ rows.forEach(r=>{const c=calc(r);if(!c.paid||!r.tgl||(w?wkey(r.tgl):mk(r.tgl))!=key)return;const k=(r.kar||"(tanpa nama)").trim(),o=km[k]||(km[k]={n:0,o:0,w:0});o.n++;o.o+=c.ongkir;o.w+=c.upah});
+ const ks=Object.keys(km).sort(),dk=$("#dkar");
+ if(!ks.length)dk.textContent="Belum ada pesanan lunas di periode ini.";
+ else{const t=el("table");t.innerHTML="<tr><th>Karyawan</th><th>Pesanan</th><th>Ongkir</th><th>Upah</th><th>Upah/pesanan</th></tr>";
+  ks.forEach(k=>{const o=km[k],tr=el("tr");[k,o.n,rp(o.o),rp(o.w),rp(o.w/o.n)].forEach(v=>tr.append(el("td",null,v)));t.append(tr)});dk.replaceChildren(t)}}
+function tab(t){$("#pgD").style.display=t=="D"?"":"none";$("#pgC").style.display=t=="C"?"":"none";$("#tD").className=t=="D"?"on":"";$("#tC").className=t=="C"?"on":""}
 function render(){
  const bln=$("#bulan").value;
  const all=rows.slice().sort((a,b)=>(b.tgl||"").localeCompare(a.tgl||""));
  const q=$("#q").value.trim().toLowerCase(),sv=$("#st").value;
  const fl=all.filter(r=>(!bln||(r.tgl||"").startsWith(bln))&&(!q||(r.nama||"").toLowerCase().includes(q))&&(!sv||(sv=="p")==calc(r).paid));
  // uang di luar (semua waktu)
- const un=all.filter(r=>!calc(r).paid);const modal=un.reduce((s,r)=>s+(+r.belanja||0),0);
+ const un=all.filter(r=>!calc(r).paid);const modal=un.reduce((s,r)=>s+bel(r),0);
  const out=$("#out");out.replaceChildren(stat(un.length+" pesanan menunggu transfer · modal belanja belum kembali",rp(modal),"warn"));
  // ringkasan
  const pd=all.filter(r=>(!bln||(r.tgl||"").startsWith(bln))&&calc(r).paid);
  const tot=pd.reduce((a,r)=>{const c=calc(r);a.m+=+r.transfer;a.u+=c.untung;a.o+=c.ongkir;a.w+=c.upah;return a},{m:0,u:0,o:0,w:0});
  const fe=exps.filter(e=>!bln||(e.tgl||"").startsWith(bln)).sort((a,b)=>(b.tgl||"").localeCompare(a.tgl||""));const tb=fe.reduce((s,e)=>s+(+e.jumlah||0),0);
  $("#sum").replaceChildren(stat("Uang masuk",rp(tot.m)),stat("Untung barang",rp(tot.u)),stat("Ongkir",rp(tot.o)),stat("Upah karyawan",rp(tot.w)),stat("Biaya operasional",rp(tb)),stat("Bersih untuk ibu",rp(tot.u+tot.o-tot.w-tb),"big"));
- rekap();
+ rekap();dash();
  const B=$("#bl");B.replaceChildren();if(!fe.length)B.append(el("div","k","Belum ada biaya tercatat."));
  fe.forEach(e=>{const d=el("div","card row"),h=el("div","h");h.append(el("div","n",e.ket||"-"),el("b",null,rp(+e.jumlah||0)));d.append(h,el("div","s",e.tgl||""));d.onclick=()=>openB(e);B.append(d)});
  // per karyawan
@@ -115,22 +174,22 @@ function render(){
   l.append(el("div","n",r.nama||"-"),el("div","s",(r.tgl||"")+(r.kar?" · "+r.kar:"")));
   h.append(l,el("span","bd"+(c.paid?" ok":""),c.paid?"Lunas":"Menunggu transfer"+(r.tgl?" · "+Math.max(0,Math.floor((Date.now()-dt(r.tgl))/864e5))+" hr":"")));
   const g=el("div","nums");
-  [["Belanja",rp(r.belanja||0)],["Nota",rp(r.nota||0)],["Transfer",c.paid?rp(r.transfer):"-"],["Ongkir",c.paid?rp(c.ongkir):"-"],["Upah",rp(c.upah)]].forEach(([k,v])=>{const x=el("div");x.append(el("span","k",k));const b=el("b",null,v);x.append(b);g.append(x)});
+  [["Belanja karyawan",rp(r.belanja||0)],["Belanja ibu",rp(r.belanjaIbu||0)],["Nota",rp(r.nota||0)],["Transfer",c.paid?rp(r.transfer):"-"],["Ongkir",c.paid?rp(c.ongkir):"-"],["Upah",rp(c.upah)]].forEach(([k,v])=>{const x=el("div");x.append(el("span","k",k));const b=el("b",null,v);x.append(b);g.append(x)});
   d.append(h,g);d.onclick=()=>open(r);L.append(d)});
 }
-function pv(){const b=nv("#f_bel")||0,n=nv("#f_nota")||0,t=nv("#f_tr"),u=nv("#f_up")||0;const p=$("#pv");
+function pv(){const b=(nv("#f_bel")||0)+(nv("#f_bi")||0),n=nv("#f_nota")||0,t=nv("#f_tr"),u=nv("#f_up")||0;const p=$("#pv");
  let s="Untung barang: "+rp(n-b);
  if(t!=null)s+=" · Ongkir: "+rp(t-n)+" · Bersih ibu: "+rp(n-b+t-n-u);else s+=" · Ongkir dan bersih dihitung setelah transfer diisi";
  p.textContent=s}
 function open(r){editId=r?r.id:null;delArm=false;$("#hapus").textContent="Hapus";
  $("#jd").textContent=r?"Ubah pesanan":"Pesanan baru";$("#hapus").style.display=r?"":"none";
  const x=r||{};$("#f_nama").value=x.nama||"";$("#f_tgl").value=x.tgl||new Date().toISOString().slice(0,10);$("#f_kar").value=x.kar||"";
- $("#f_bel").value=x.belanja??"";$("#f_nota").value=x.nota??"";$("#f_tr").value=x.transfer??"";$("#f_up").value=x.upah??"";$("#f_cat").value=x.catatan||"";
+ $("#f_bel").value=x.belanja??"";$("#f_bi").value=x.belanjaIbu??"";$("#f_nota").value=x.nota??"";$("#f_tr").value=x.transfer??"";$("#f_up").value=x.upah??"";$("#f_cat").value=x.catatan||"";
  pv();$("#dlg").showModal()}
 async function save(){
- const nama=$("#f_nama").value.trim(),bel=nv("#f_bel");
- if(!nama||bel==null){$("#pv").textContent="Isi nama kustomer dan belanja di toko dulu.";return}
- const data={nama,tgl:$("#f_tgl").value,kar:$("#f_kar").value.trim(),belanja:bel,nota:nv("#f_nota")||0,transfer:nv("#f_tr"),upah:nv("#f_up")||0,catatan:$("#f_cat").value.trim()};
+ const nama=$("#f_nama").value.trim(),bel=nv("#f_bel"),bi=nv("#f_bi");
+ if(!nama||(bel==null&&bi==null)){$("#pv").textContent="Isi nama kustomer dan belanja (karyawan atau ibu) dulu.";return}
+ const data={nama,tgl:$("#f_tgl").value,kar:$("#f_kar").value.trim(),belanja:bel||0,belanjaIbu:bi||0,nota:nv("#f_nota")||0,transfer:nv("#f_tr"),upah:nv("#f_up")||0,catatan:$("#f_cat").value.trim()};
  try{
   if(db){const c=db.collection("orders");if(editId)await c.doc(editId).set(data);else await c.add(data)}
   else{if(editId)rows=rows.map(r=>r.id==editId?{id:editId,...data}:r);else rows.push({id:"l"+Date.now(),...data});render()}
@@ -153,7 +212,7 @@ async function exp(){const n=$("#note");
  if(!window.XLSX){n.textContent="Pustaka Excel gagal dimuat. Muat ulang halaman.";return}
  const wb=XLSX.utils.book_new(),add=(nm,a)=>XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(a.length?a:[{"":"Belum ada data"}]),nm);
  const bln=$("#bulan").value;
- add("Pesanan",rows.filter(r=>!bln||(r.tgl||"").startsWith(bln)).sort((a,b)=>(a.tgl||"").localeCompare(b.tgl||"")).map(r=>{const c=calc(r);return{Tanggal:r.tgl,Kustomer:r.nama,Karyawan:r.kar,Belanja:+r.belanja||0,Nota:+r.nota||0,Transfer:c.paid?+r.transfer:"",Ongkir:c.paid?c.ongkir:"","Untung barang":c.untung,Upah:c.upah,Status:c.paid?"Lunas":"Menunggu transfer",Catatan:r.catatan||""}}));
+ add("Pesanan",rows.filter(r=>!bln||(r.tgl||"").startsWith(bln)).sort((a,b)=>(a.tgl||"").localeCompare(b.tgl||"")).map(r=>{const c=calc(r);return{Tanggal:r.tgl,Kustomer:r.nama,Karyawan:r.kar,"Belanja karyawan":+r.belanja||0,"Belanja ibu":+r.belanjaIbu||0,Nota:+r.nota||0,Transfer:c.paid?+r.transfer:"",Ongkir:c.paid?c.ongkir:"","Untung barang":c.untung,Upah:c.upah,Status:c.paid?"Lunas":"Menunggu transfer",Catatan:r.catatan||""}}));
  const R=(a,lab)=>a.map(r=>({[lab[0]]:lab[1](r.k),Pesanan:r.n,"Uang masuk":r.m,"Untung barang":r.u,Ongkir:r.o,Upah:r.w,Biaya:r.b,Bersih:r.bersih}));
  add("Rekap Mingguan",R(agg(wkey),["Minggu",wlab]));add("Rekap Bulanan",R(agg(t=>t.slice(0,7)),["Bulan",mlab]));
  const km={};rows.filter(r=>calc(r).paid&&(!bln||(r.tgl||"").startsWith(bln))).forEach(r=>{const k=(r.kar||"(tanpa nama)").trim(),c=calc(r),o=km[k]||(km[k]={Karyawan:k,Pesanan:0,Ongkir:0,Upah:0});o.Pesanan++;o.Ongkir+=c.ongkir;o.Upah+=c.upah});
@@ -163,8 +222,9 @@ async function exp(){const n=$("#note");
 $("#biaya").onclick=()=>openB(null);$("#bsimpan").onclick=saveB;$("#bhapus").onclick=delB;$("#bbatal").onclick=()=>$("#dlg2").close();$("#xls").onclick=exp;
 $("#mode").onchange=render;$("#q").oninput=render;$("#st").onchange=render;
 $("#tambah").onclick=()=>open(null);$("#simpan").onclick=save;$("#hapus").onclick=del;$("#batal").onclick=()=>$("#dlg").close();
-["#f_bel","#f_nota","#f_tr","#f_up"].forEach(s=>$(s).addEventListener("input",pv));
+["#f_bel","#f_bi","#f_nota","#f_tr","#f_up"].forEach(s=>$(s).addEventListener("input",pv));
 $("#bulan").value=new Date().toISOString().slice(0,7);$("#bulan").onchange=render;
+$("#dmode").onchange=dash;$("#kp").onchange=dash;$("#tD").onclick=()=>tab("D");$("#tC").onclick=()=>tab("C");
 render();
 const BK=7;
 let store={orders:[],expenses:[]};const subs={};
